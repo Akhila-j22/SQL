@@ -1,61 +1,92 @@
+-- ----------------------------------------------------------------------
+-- TCL (Transaction Control Language) Examples
+-- Description: COMMIT, ROLLBACK, SAVEPOINT practical SQL examples
+-- ----------------------------------------------------------------------
+
+-- Use the HR database
 USE hr;
+
+-- Count existing rows (Assume initially 18 rows)
 SELECT COUNT(*) FROM employees_dtls;
+
+-- Insert a row
 INSERT INTO employees_dtls
-VALUES(220,"ashok","reddy","2023-02-14 21:19:39",19,90000,0.01,1002,1435,"ashok@gmail.com");
+VALUES (220, "ashok", "reddy", "2023-02-14 21:19:39", 19, 90000, 0.01, 1002, 1435, "ashok@gmail.com");
 
-ROLLBACK;                             ----- (paina first count chesam total ga 18 rows vachay then oka row ni insert chesam then 19 ayyay and rollback chesam again adhi 18 ki vachay )-
+-- Verify row added: count becomes 19
+SELECT COUNT(*) FROM employees_dtls;
 
- ---- COMMIT------
- -- 1.insert 2 rows  (2 rows insert cheyali)
- -- 2.commit         (aa rows ni freeze cheyali using commit)
- -- 3.insert one row  (then inkoka row kavali naku so insert chesthuna)
- -- 4.Rollback         (nen endhaka create chesina row lo naku errors vachay so i want to rollback ,edhi chesthy aa row add avvadhu delete aypothundhi mundhu 2 rows alaney freeze lo vubtay)
- 
- 
-COMMIT;
------- (transaction starts here)--------
-INSERT INTO employees_dtls 
-VALUES(201,"hitaishi","reddy","2021-02-14 21:19:39",14,40000,0.01,1002,1435,"hitaishi@gmail.com");
-INSERT INTO employees_dtls
-VALUES	(202,"kalyani","reddy","2022-02-14 21:19:39",15,50000,0.01,1002,1435,"kalyani@gmail.com");
-
-COMMIT;
-INSERT INTO employees_dtls
-VALUES(203,"anjan","reddy","2020-02-14 21:19:39",17,70000,0.01,1002,1435,"anjan@gmail.com");
-
+-- ROLLBACK: undo the last insert
 ROLLBACK;
-  --------------------- EXAMPLE2*********---------------------------------------------------------
-  SELECT*FROM employees_dtls;
- --- (among 20 records one person have 50000)
- UPDATE employees_dtls
- SET salary = 10000;
- COMMIT;   -- (edhi chesaka localhost lo kuda automatic ga change aypothundhi akkada table lo kuda salary updatee avthundhi )------
 
-
--------- SAVEPOINT**************---------------------------------
+-- Verify rollback worked: count returns to 18
 SELECT COUNT(*) FROM employees_dtls;
----- 20 records vunnay
 
--- set 1 insert statement 
+-- --------------------- COMMIT Example ---------------------
+
+-- Insert 2 rows
+INSERT INTO employees_dtls 
+VALUES
+  (201, "hitaishi", "reddy", "2021-02-14 21:19:39", 14, 40000, 0.01, 1002, 1435, "hitaishi@gmail.com"),
+  (202, "kalyani", "reddy", "2022-02-14 21:19:39", 15, 50000, 0.01, 1002, 1435, "kalyani@gmail.com");
+
+-- Commit these changes so they are saved permanently
+COMMIT;
+
+-- Insert another row
 INSERT INTO employees_dtls
-VALUES(204,"anjan","reddy","2020-02-14 21:19:39",17,70000,0.01,1002,1435,"anjan@gmail.com");
+VALUES (203, "anjan", "reddy", "2020-02-14 21:19:39", 17, 70000, 0.01, 1002, 1435, "anjan@gmail.com");
 
+-- ROLLBACK: undo the last insert
+ROLLBACK;
+
+-- Confirm that only first two rows (201, 202) exist
+SELECT * FROM employees_dtls WHERE emp_id IN (201, 202, 203);
+
+-- --------------------- UPDATE + COMMIT Example ---------------------
+
+-- Find current salary (e.g., one person has 50000)
+SELECT * FROM employees_dtls WHERE salary = 50000;
+
+-- Update salary of all employees
+UPDATE employees_dtls
+SET salary = 10000;
+
+-- COMMIT: make this change permanent
+COMMIT;
+
+-- --------------------- SAVEPOINT Example ---------------------
+
+-- Check current row count (e.g., 20)
+SELECT COUNT(*) FROM employees_dtls;
+
+-- Insert Set 1
+INSERT INTO employees_dtls
+VALUES (204, "anjan", "reddy", "2020-02-14 21:19:39", 17, 70000, 0.01, 1002, 1435, "anjan@gmail.com");
+
+-- Create SAVEPOINT after Set 1
 SAVEPOINT set1_insert;
 
--- set 2 insert statement 
+-- Insert Set 2
 INSERT INTO employees_dtls
-VALUES(205,"pulla","reddy","2020-02-14 21:19:39",17,20000,0.01,1002,1435,"anjan@gmail.com");
-INSERT INTO employees_dtls
-VALUES(206,"shreya","reddy","2020-02-14 21:19:39",17,30000,0.01,1002,1435,"anjan@gmail.com");
+VALUES 
+  (205, "pulla", "reddy", "2020-02-14 21:19:39", 17, 20000, 0.01, 1002, 1435, "anjan@gmail.com"),
+  (206, "shreya", "reddy", "2020-02-14 21:19:39", 17, 30000, 0.01, 1002, 1435, "anjan@gmail.com");
 
+-- Create SAVEPOINT after Set 2
 SAVEPOINT set2_insert;
 
+-- Check count (should be 23 now)
 SELECT COUNT(*) FROM employees_dtls;
---- 23 records
 
-ROLLBACK TO SAVEPOINT set1_insert;   -- (set_insert savepoint lo nen wrong data pettanu or i doint need that data alanti time lo edhi use chestham)----
---- 21 records
+-- ROLLBACK TO SAVEPOINT: cancel Set 2
+ROLLBACK TO SAVEPOINT set1_insert;
+
+-- Check count: should now be 21
+SELECT COUNT(*) FROM employees_dtls;
+
+-- Full ROLLBACK: remove Set 1 too
 ROLLBACK;
- 
- SELECT COUNT(*) FROM employees_dtls;
- ---- 20 records
+
+-- Final count check (back to original state, e.g., 20)
+SELECT COUNT(*) FROM employees_dtls;
